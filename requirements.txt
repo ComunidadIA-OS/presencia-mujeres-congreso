@@ -1,0 +1,5 @@
+# Dependencias mínimas iniciales. Se fijarán versiones cuando el prototipo funcione.
+pandas
+lxml
+openai      # Cliente compatible con la API de OVHcloud AI Endpoints (y con cualquier API tipo OpenAI)
+pytest

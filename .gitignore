@@ -1,0 +1,18 @@
+# Entornos y caché de Python
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ipynb_checkpoints/
+
+# Secretos: NUNCA subir tokens ni credenciales (p. ej. el token de OVHcloud AI Endpoints)
+.env
+*.key
+secrets*
+
+# Datos: se descargan desde la fuente original, no se redistribuyen
+data/raw/
+data/processed/
+
+# Sistema
+.DS_Store
