@@ -1,6 +1,6 @@
 import csv
 
-from presencia.corpus import analyze_text, index_text_files, iter_speeches
+from presencia.corpus import analyze_text, continuation_ids, index_text_files, iter_speeches
 from presencia.export import main
 
 HEADER = [
@@ -41,6 +41,25 @@ def test_analyze_text_ignores_comments_in_word_count():
     assert comments == ["Aplausos", "Rumores.-Aplausos"]
 
 
+def _item(number, role, speaker, text):
+    return {"ID": f"S1.u{number}", "Speaker_role": role, "Speaker_ID": speaker}, text
+
+
+def test_continuation_ids():
+    long_chair = " ".join(["palabra"] * 13)
+    items = [
+        _item(1, "Regular", "ana", "Primera parte."),
+        _item(2, "Chairperson", "-", "Silencio, por favor."),
+        _item(3, "Regular", "ana", "Sigue la misma intervención."),  # continuación
+        _item(4, "Chairperson", "-", long_chair),
+        _item(5, "Regular", "ana", "Otra intervención."),  # no: la presidencia habló más de 12 palabras
+        _item(6, "Chairperson", "-", "Tiene la palabra."),
+        _item(7, "Regular", "luis", "Otro orador."),  # no: persona distinta
+    ]
+    assert continuation_ids(items) == {"S1.u3"}
+    assert continuation_ids(list(reversed(items))) == {"S1.u3"}  # no depende del orden de entrada
+
+
 def test_index_ignores_readme(tmp_path):
     make_corpus(tmp_path)
     assert set(index_text_files(tmp_path)) == {"S1"}
@@ -63,6 +82,7 @@ def test_export_writes_tables(tmp_path, capsys):
         rows = list(csv.DictReader(fh))
     assert [r["words"] for r in rows] == ["7", "5", ""]
     assert rows[1]["n_comments"] == "2"
+    assert [r["continuation"] for r in rows] == ["0", "0", "0"]
 
     with open(out / "comentarios.csv", encoding="utf-8", newline="") as fh:
         comments = {r["comentario"]: r for r in csv.DictReader(fh)}

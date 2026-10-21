@@ -5,7 +5,8 @@ Uso (desde la raíz del repositorio):
     python src/presencia/export.py data/raw/ParlaMint-ES.txt
 
 Escribe en data/processed/ (cambiable con --salida):
-  intervenciones.csv  una fila por intervención: metadatos básicos, nº de palabras y nº de comentarios
+  intervenciones.csv  una fila por intervención: metadatos básicos, nº de palabras, nº de
+                      comentarios y si es continuación de la anterior de la misma persona
   comentarios.csv     comentarios del transcriptor ([[...]]) únicos, con su frecuencia
 """
 from __future__ import annotations
@@ -14,12 +15,13 @@ import argparse
 import csv
 import sys
 from collections import Counter
+from itertools import groupby
 from pathlib import Path
 
 if __package__ in (None, ""):  # ejecución directa: python src/presencia/export.py
     sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from presencia.corpus import analyze_text, iter_speeches  # noqa: E402
+from presencia.corpus import analyze_text, continuation_ids, iter_speeches, session_of  # noqa: E402
 from presencia.explore import CHAIR, field  # noqa: E402
 
 META_FIELDS = [
@@ -42,26 +44,31 @@ def main(argv=None):
     out_dir.mkdir(parents=True, exist_ok=True)
 
     total_comments, speaker_comments = Counter(), Counter()
-    n = missing = words_all = words_speakers = 0
+    n = missing = continuations = words_all = words_speakers = 0
 
     with open(out_dir / "intervenciones.csv", "w", encoding="utf-8", newline="") as fh:
         writer = csv.writer(fh)
-        writer.writerow(META_FIELDS + ["words", "n_comments"])
-        for row, text in iter_speeches(root):
-            n += 1
-            is_chair = field(row, "Speaker_role") == CHAIR
-            if text is None:
-                missing += 1
-                words, comments = "", []
-            else:
-                words, comments = analyze_text(text)
-                words_all += words
+        writer.writerow(META_FIELDS + ["words", "n_comments", "continuation"])
+        for _, group in groupby(iter_speeches(root), key=lambda item: session_of(field(item[0], "ID"))):
+            items = list(group)
+            cont = continuation_ids(items)
+            for row, text in items:
+                n += 1
+                is_chair = field(row, "Speaker_role") == CHAIR
+                if text is None:
+                    missing += 1
+                    words, comments = "", []
+                else:
+                    words, comments = analyze_text(text)
+                    words_all += words
+                    if not is_chair:
+                        words_speakers += words
+                total_comments.update(comments)
                 if not is_chair:
-                    words_speakers += words
-            total_comments.update(comments)
-            if not is_chair:
-                speaker_comments.update(comments)
-            writer.writerow([field(row, f) for f in META_FIELDS] + [words, len(comments)])
+                    speaker_comments.update(comments)
+                is_cont = 1 if row.get("ID") in cont else 0
+                continuations += is_cont
+                writer.writerow([field(row, f) for f in META_FIELDS] + [words, len(comments), is_cont])
 
     if n == 0:
         print(f"No se encontraron metadatos en {root.resolve()}. Ejecuta primero explore.py para diagnosticar.")
@@ -74,6 +81,7 @@ def main(argv=None):
             writer.writerow([comment, total, speaker_comments.get(comment, 0)])
 
     print(f"Intervenciones: {n}   sin texto asociado: {missing}")
+    print(f"Continuaciones (discurso partido por una interrupción breve de la presidencia): {continuations}")
     print(f"Palabras: {words_all} (oradores: {words_speakers})")
     print(
         f"Comentarios del transcriptor: {sum(total_comments.values())} en total, "

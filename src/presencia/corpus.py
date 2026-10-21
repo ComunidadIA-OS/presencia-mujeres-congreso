@@ -68,3 +68,46 @@ def analyze_text(text):
     comments = [clean_comment(c) for c in COMMENT_RE.findall(text)]
     words = len(COMMENT_RE.sub(" ", text).split())
     return words, comments
+
+
+# Un turno de presidencia de esta longitud o menos entre dos turnos de la misma
+# persona se considera una interrupción ("Silencio, por favor", "debe ir terminando").
+MAX_INTERRUPTION_WORDS = 12
+
+
+def turn_number(speech_id):
+    """'S1.u12' -> 12; None si el ID no tiene ese formato."""
+    try:
+        return int(speech_id.rsplit(".u", 1)[1])
+    except (IndexError, ValueError):
+        return None
+
+
+def word_count(text):
+    """Palabras de un texto sin contar los comentarios del transcriptor."""
+    return len(COMMENT_RE.sub(" ", text or "").split())
+
+
+def continuation_ids(items):
+    """IDs de las intervenciones que continúan la anterior de la misma persona.
+
+    ``items`` son los pares (fila, texto) de una sesión. En el corpus, cuando la
+    presidencia interrumpe con una frase breve, el discurso se parte en dos filas.
+    Una intervención es continuación si entre ella y la anterior de la misma
+    persona solo hay un turno de presidencia de MAX_INTERRUPTION_WORDS palabras o menos.
+    """
+    ordered = sorted(items, key=lambda item: turn_number(field(item[0], "ID")) or 0)
+    found = set()
+    for i in range(2, len(ordered)):
+        (prev, _), (mid, mid_text), (row, _) = ordered[i - 2], ordered[i - 1], ordered[i]
+        speaker = field(row, "Speaker_ID")
+        if (
+            field(mid, "Speaker_role") == "Chairperson"
+            and word_count(mid_text) <= MAX_INTERRUPTION_WORDS
+            and field(prev, "Speaker_role") != "Chairperson"
+            and field(row, "Speaker_role") != "Chairperson"
+            and speaker not in ("-", "?")
+            and field(prev, "Speaker_ID") == speaker
+        ):
+            found.add(row["ID"])
+    return found
