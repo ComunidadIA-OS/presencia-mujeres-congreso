@@ -75,6 +75,17 @@ def test_sample_is_reproducible(tmp_path):
     assert [r["ID"] for r in read_sample(tmp_path / "a.csv")] == [r["ID"] for r in read_sample(tmp_path / "b.csv")]
 
 
+def test_sample_includes_sequence_without_identities(tmp_path):
+    make_corpus(tmp_path)
+    out = tmp_path / "muestra.csv"
+    assert main([str(tmp_path), "--n", "10", "--salida", str(out)]) == 0
+    sequences = {r["ID"]: r["secuencia"] for r in read_sample(out)}
+    assert sequences["S1.u2"] == "P(6) → A(6)"
+    assert sequences["S1.u4"] == "P(6) A(6) P(6) → B(6)"
+    assert sequences["S1.u8"] == "P(6) A(6) P(6) B(6) P(6) C(6) P(6) → D(6)"
+    assert "p2" not in "".join(sequences.values())  # solo letras, nunca identificadores
+
+
 def test_sample_excludes_continuations(tmp_path):
     # u4 lo dice la misma persona que u2, con un turno breve de presidencia (u3) en medio: es continuación
     make_corpus(tmp_path, speakers={4: "p2"})

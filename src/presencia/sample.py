@@ -8,7 +8,8 @@ Uso (desde la raíz del repositorio):
 Elige n intervenciones de mujeres y n de hombres (rol Regular) al azar y escribe
 data/processed/muestra_anotacion.csv. Excluye las continuaciones (discursos partidos
 por una interrupción breve de la presidencia). El archivo NO incluye género, nombre
-ni grupo, para anotar a ciegas; el género se une después por el ID.
+ni grupo, para anotar a ciegas; el género se une después por el ID. Incluye la
+estructura de los turnos anteriores (columna ``secuencia``), que no identifica a nadie.
 """
 from __future__ import annotations
 
@@ -26,13 +27,15 @@ from presencia.corpus import (  # noqa: E402
     COMMENT_RE,
     continuation_ids,
     iter_speeches,
+    sequence_context,
     session_of,
     turn_number,
+    turns_of,
     word_count,
 )
 from presencia.explore import field  # noqa: E402
 
-FIELDS = ["ID", "previo_2", "previo_1", "inicio", "final", "palabras", "etiqueta", "notas"]
+FIELDS = ["ID", "previo_2", "previo_1", "secuencia", "inicio", "final", "palabras", "etiqueta", "notas"]
 
 
 def excerpt(text, limit, tail=False):
@@ -49,7 +52,7 @@ def session_key(item):
     return session_of(field(item[0], "ID"))
 
 
-def build_record(row, text, by_id):
+def build_record(row, text, by_id, sequence):
     """Arma la fila de anotación con el contexto de los dos turnos anteriores."""
     speech_id = row["ID"]
     base, number = session_of(speech_id), turn_number(speech_id)
@@ -60,6 +63,7 @@ def build_record(row, text, by_id):
         "ID": speech_id,
         "previo_2": excerpt(prev2, 50, tail=True),
         "previo_1": excerpt(prev1, 80),
+        "secuencia": sequence,
         "inicio": excerpt(text, 120),
         "final": excerpt(text, 40, tail=True) if words > 160 else "",
         "palabras": words,
@@ -105,12 +109,16 @@ def main(argv=None):
         print("No hay candidatos: ejecuta explore.py para diagnosticar.")
         return 1
 
-    # Pasada 2: texto y contexto de las elegidas
+    # Pasada 2: texto, contexto y estructura de las elegidas
     records = []
     for _, group in groupby(iter_speeches(root), key=session_key):
         items = list(group)
+        turns = turns_of(items)
+        position = {turn[0]: i for i, turn in enumerate(turns)}
         by_id = {r.get("ID"): t for r, t in items}
-        records += [build_record(r, t, by_id) for r, t in items if r.get("ID") in chosen]
+        for row, text in items:
+            if row.get("ID") in chosen:
+                records.append(build_record(row, text, by_id, sequence_context(turns, position[row["ID"]])))
 
     rng.shuffle(records)  # que no salgan agrupadas por género
     out = Path(args.salida)

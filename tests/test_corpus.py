@@ -1,6 +1,12 @@
 import csv
 
-from presencia.corpus import analyze_text, continuation_ids, index_text_files, iter_speeches
+from presencia.corpus import (
+    analyze_text,
+    continuation_ids,
+    index_text_files,
+    iter_speeches,
+    sequence_context,
+)
 from presencia.export import main
 
 HEADER = [
@@ -58,6 +64,26 @@ def test_continuation_ids():
     ]
     assert continuation_ids(items) == {"S1.u3"}
     assert continuation_ids(list(reversed(items))) == {"S1.u3"}  # no depende del orden de entrada
+
+
+def test_sequence_context_merges_interruptions_and_labels_people():
+    # id, rol, persona, palabras
+    turns = [
+        ("S1.u1", "Chairperson", "-", 2),
+        ("S1.u2", "Regular", "ana", 104),
+        ("S1.u3", "Chairperson", "-", 3),  # interrupción breve
+        ("S1.u4", "Regular", "ana", 52),  # continuación de u2
+        ("S1.u5", "Chairperson", "-", 3),
+        ("S1.u6", "Regular", "ana", 98),  # continuación
+        ("S1.u7", "Chairperson", "-", 6),
+        ("S1.u8", "Regular", "luis", 220),
+        ("S1.u9", "Chairperson", "-", 4),
+        ("S1.u10", "Regular", "ana", 40),
+    ]
+    assert sequence_context(turns, 7) == "P(2) A(254) P(6) → B(220)"
+    # La misma persona de antes vuelve a hablar: se reconoce por la letra repetida
+    assert sequence_context(turns, 9) == "P(2) A(254) P(6) B(220) P(4) → A(40)"
+    assert sequence_context(turns, 1) == "P(2) → A(104)"
 
 
 def test_index_ignores_readme(tmp_path):
