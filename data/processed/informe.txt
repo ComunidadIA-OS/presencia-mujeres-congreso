@@ -1,0 +1,76 @@
+Archivos de metadatos: 450   Filas (intervenciones): 76369
+
+== Intervenciones por rol ==
+  Chairperson       43630
+  Regular           32551
+  Guest               188
+
+== Rol x género ==
+  Chairperson   -       32483
+  Chairperson   F        3353
+  Chairperson   M        7794
+  Guest         F          45
+  Guest         M         142
+  Guest         U           1
+  Regular       F       12195
+  Regular       M       20346
+  Regular       U          10
+
+== Resumen sin presidencia (intervenciones de oradores) ==
+  Total: 32739   F=12240   M=20488   otros/desconocido=11
+  % de mujeres (entre F y M): 37.4
+  Oradores distintos: mujeres=386  hombres=539  % mujeres=41.7
+
+== % de mujeres en las intervenciones, por año ==
+  2015   30.8 %   (F=1199, M=2691, otros=0)
+  2016   29.7 %   (F=546, M=1295, otros=0)
+  2017   33.8 %   (F=1420, M=2783, otros=0)
+  2018   39.8 %   (F=2005, M=3028, otros=0)
+  2019   40.6 %   (F=555, M=811, otros=0)
+  2020   36.8 %   (F=1872, M=3209, otros=0)
+  2021   40.1 %   (F=2240, M=3344, otros=6)
+  2022   41.8 %   (F=2079, M=2900, otros=5)
+  2023   43.1 %   (F=324, M=427, otros=0)
+
+== Presidencia (turnos con rol Chairperson) ==
+  año    turnos  género conocido  % mujeres entre conocidos
+  2015     6200          25.4 %            83.7 %
+  2016     2294           9.7 %            40.4 %
+  2017     5397          21.5 %            21.3 %
+  2018     6905          27.6 %            34.3 %
+  2019     1638          21.2 %            38.5 %
+  2020     6071          19.6 %            14.3 %
+  2021     6945          33.3 %            17.1 %
+  2022     7285          29.2 %            13.9 %
+  2023      895          34.7 %            16.4 %
+  Total   43630          25.5 %            30.1 %
+
+== Condición de ministro ==
+  notMinister       28279
+  Minister           4460
+
+== % de mujeres por tema ==
+  Macroeconomics                   35.1 %   (n=4829)
+  Civil Rights                     44.9 %   (n=3979)
+  Other                            35.5 %   (n=3208)
+  Law and Crime                    28.7 %   (n=2745)
+  Mix                              35.8 %   (n=2541)
+  Government Operations            29.2 %   (n=2322)
+  Labor                            46.8 %   (n=2101)
+  Health                           45.7 %   (n=1534)
+  International Affairs            26.9 %   (n=1251)
+  Education                        44.9 %   (n=1036)
+  Energy                           39.6 %   (n=978)
+  Transportation                   32.0 %   (n=857)
+  Social Welfare                   51.6 %   (n=850)
+  Domestic Commerce                35.3 %   (n=711)
+  Housing                          43.6 %   (n=691)
+  Immigration                      34.1 %   (n=662)
+  Environment                      40.6 %   (n=625)
+  Agriculture                      35.6 %   (n=607)
+  Defense                          32.5 %   (n=351)
+  Technology                       38.0 %   (n=342)
+  Culture                          29.8 %   (n=302)
+  Public Lands                     32.7 %   (n=150)
+  Foreign Trade                    46.9 %   (n=49)
+  -                                50.0 %   (n=18)
