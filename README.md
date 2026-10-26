@@ -35,7 +35,28 @@ Los datos **no se incluyen** en el repositorio. Instrucciones de descarga y lice
 
 ## Uso
 
-TODO: ejemplo de ejecución cuando exista el primer prototipo.
+Configura el token de OVHcloud AI Endpoints en un archivo `.env` en la raíz (no se sube a Git):
+
+```
+OVH_AI_TOKEN=tu_token
+```
+
+```bash
+# 1. Comprobar la conexión y ver los modelos disponibles
+python src/presencia/models.py
+
+# 2. Evaluar reglas, modelos y método híbrido contra la muestra anotada a mano
+python src/presencia/evaluate.py data/annotated/muestra_anotada.csv --modelo Qwen3.5-397B-A17B --hibrido
+
+# 3. Clasificar una muestra grande del corpus (primero estima cuántas llamadas hacen falta)
+python src/presencia/classify.py data/raw/ParlaMint-ES.txt --estimar
+python src/presencia/classify.py data/raw/ParlaMint-ES.txt --n 1500 --paralelo 4
+
+# 4. Métricas de protagonismo por género
+python src/presencia/roles.py data/processed/roles.csv
+```
+
+Resultados de la evaluación: [docs/05-evaluacion.md](docs/05-evaluacion.md).
 
 ## Estructura del repositorio
 

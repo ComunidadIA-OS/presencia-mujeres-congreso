@@ -35,6 +35,16 @@ def people(secuencia):
     return [t[0] for t in previous if t[0] != "P"], current[0]
 
 
+def structural_label(row):
+    """Etiqueta segura por estructura, o None.
+
+    Si la persona del turno ya había hablado antes en el mismo intercambio (misma letra en
+    ``secuencia``), es una réplica. Lo usa el método híbrido: esa decisión no necesita un modelo.
+    """
+    previous, current = people(row["secuencia"])
+    return "replica" if current is not None and current in previous else None
+
+
 def classify(row):
     """Etiqueta una fila de la muestra (diccionario con previo_1, secuencia, inicio, palabras)."""
     previous, current = people(row["secuencia"])
