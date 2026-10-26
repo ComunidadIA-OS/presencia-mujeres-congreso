@@ -77,14 +77,16 @@ def list_models(cfg):
     return sorted(m["id"] for m in _request(f"{cfg['base_url']}/models", cfg["token"]).get("data", []))
 
 
-def chat(cfg, messages, max_tokens=3000, retries=3):
+def chat(cfg, messages, max_tokens=None, retries=4):
     """Una llamada a chat/completions; devuelve el texto de la respuesta."""
+    max_tokens = max_tokens or int(os.environ.get("OVH_AI_MAX_TOKENS", "8000"))  # los modelos que razonan gastan muchos
     payload = {"model": cfg["model"], "messages": messages, "temperature": 0, "max_tokens": max_tokens}
     for attempt in range(retries):
         try:
-            data = _request(f"{cfg['base_url']}/chat/completions", cfg["token"], payload)
-            message = data["choices"][0]["message"]
-            return message.get("content") or message.get("reasoning_content") or ""
+            data = _request(f"{cfg['base_url']}/chat/completions", cfg["token"], payload, timeout=300)
+            # Solo vale la respuesta final. El razonamiento (reasoning_content) menciona varias etiquetas
+            # y no es una respuesta; si el modelo se queda sin tokens razonando, content llega vacío.
+            return data["choices"][0]["message"].get("content") or ""
         except (urllib.error.URLError, TimeoutError, KeyError) as exc:
             if isinstance(exc, urllib.error.HTTPError) and exc.code not in (429, 500, 502, 503, 504):
                 raise
@@ -110,9 +112,16 @@ def build_messages(row, examples):
 
 def parse_label(text):
     """Última etiqueta válida mencionada en la respuesta; 'otra' si no hay ninguna."""
-    found = re.findall(r"\b(" + "|".join(LABELS) + r")\b", (text or "").lower().replace("réplica", "replica")
-                       .replace("posición", "posicion"))
+    found = re.findall(r"\b(" + "|".join(LABELS) + r")\b", _normalize(text))
     return found[-1] if found else "otra"
+
+
+def has_label(text):
+    return bool(re.search(r"\b(" + "|".join(LABELS) + r")\b", _normalize(text)))
+
+
+def _normalize(text):
+    return (text or "").lower().replace("réplica", "replica").replace("posición", "posicion")
 
 
 def classify_rows(cfg, rows, examples, cache_path=None, ask=chat, progress=True):
@@ -121,17 +130,28 @@ def classify_rows(cfg, rows, examples, cache_path=None, ask=chat, progress=True)
     if cache_path and Path(cache_path).is_file():
         for line in Path(cache_path).read_text(encoding="utf-8").splitlines():
             item = json.loads(line)
-            if item["raw"].strip():  # una respuesta vacía no vale: se vuelve a pedir
+            if has_label(item["raw"]):  # una respuesta vacía o sin etiqueta no vale: se vuelve a pedir
                 cache[item["ID"]] = item["raw"]
-    out = []
+    out, failed = [], 0
     for i, row in enumerate(rows, 1):
         if row["ID"] not in cache:
-            cache[row["ID"]] = ask(cfg, build_messages(row, examples))
-            if cache_path and cache[row["ID"]].strip():
+            try:
+                answer = ask(cfg, build_messages(row, examples))
+            except (urllib.error.URLError, TimeoutError, OSError) as exc:
+                print(f"\n  AVISO fila {row['ID']}: {type(exc).__name__}; se reintentará en la próxima ejecución")
+                answer = ""
+            if not has_label(answer):
+                failed += 1
+                out.append("otra")
+                continue
+            cache[row["ID"]] = answer
+            if cache_path:
                 Path(cache_path).parent.mkdir(parents=True, exist_ok=True)
                 with open(cache_path, "a", encoding="utf-8") as fh:
                     fh.write(json.dumps({"ID": row["ID"], "raw": cache[row["ID"]]}, ensure_ascii=False) + "\n")
             if progress:
                 print(f"  {i}/{len(rows)}", end="\r", flush=True)
         out.append(parse_label(cache[row["ID"]]))
+    if failed:
+        print(f"\n  AVISO: {failed} filas sin respuesta válida (contadas como 'otra'). Vuelve a ejecutar para reintentarlas.")
     return out

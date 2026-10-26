@@ -1,7 +1,7 @@
 import json
 import os
 
-from presencia.llm import build_messages, classify_rows, load_env, parse_label
+from presencia.llm import build_messages, classify_rows, has_label, load_env, parse_label
 
 ROW = {"ID": "x.u1", "previo_2": "", "previo_1": "Pregunta de la diputada X.", "secuencia": "P(5) → A(60)",
        "inicio": "Señor ministro, ...", "final": "", "palabras": 60, "etiqueta": ""}
@@ -47,9 +47,20 @@ def test_classify_rows_uses_cache(tmp_path):
 
 
 def test_empty_answers_are_not_cached(tmp_path):
-    answers = iter(["", "pregunta"])
+    answers = iter(["", "pregunta"])  # vacía, luego válida
     cache = tmp_path / "c.jsonl"
     ask = lambda cfg, messages: next(answers)  # noqa: E731
     assert classify_rows({}, [ROW], [], cache_path=cache, ask=ask, progress=False) == ["otra"]
     assert not cache.exists() or cache.read_text(encoding="utf-8") == ""
     assert classify_rows({}, [ROW], [], cache_path=cache, ask=ask, progress=False) == ["pregunta"]
+
+
+def test_has_label_and_failures_do_not_crash(tmp_path):
+    assert has_label("Réplica") and not has_label("") and not has_label("no estoy seguro")
+
+    def broken(cfg, messages):
+        raise TimeoutError("lento")
+
+    cache = tmp_path / "c.jsonl"
+    assert classify_rows({}, [ROW], [], cache_path=cache, ask=broken, progress=False) == ["otra"]
+    assert not cache.exists()  # nada que reutilizar: se reintentará
