@@ -3,3 +3,4 @@ pandas
 lxml
 openai      # Cliente compatible con la API de OVHcloud AI Endpoints (y con cualquier API tipo OpenAI)
 pytest
+matplotlib  # gráficos para la presentación (src/presencia/figures.py)
