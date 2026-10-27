@@ -5,6 +5,7 @@ __pycache__/
 .pytest_cache/
 .ipynb_checkpoints/
 .vscode
+.venv
 
 # Secretos: NUNCA subir tokens ni credenciales (p. ej. el token de OVHcloud AI Endpoints)
 .env
