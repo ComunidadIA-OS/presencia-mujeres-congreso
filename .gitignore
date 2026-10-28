@@ -14,7 +14,7 @@ secrets*
 
 # Datos: se descargan desde la fuente original, no se redistribuyen
 data/raw/
-# data/processed/
+data/processed/
 
 # Sistema
 .DS_Store
