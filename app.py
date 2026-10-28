@@ -317,8 +317,13 @@ def build():
                 interactive=False,
             )
             gr.Markdown(
-                "**Lectura:** la brecha está en **cuánto** intervienen las mujeres, no en qué papel cumplen ni en "
-                "qué momento hablan. *Más tiempo de palabra no implica más influencia.*"
+                "**Lectura (diputadas y diputados, sin ministros):** las mujeres intervienen menos (37 % de las "
+                "intervenciones), pero cuando intervienen **presentan más iniciativas y preguntan más al Gobierno**; "
+                "los hombres, en proporción, fijan más la posición de su grupo. Abren y cierran las secciones del debate "
+                "al menos en proporción a su presencia. Las ministras hacen el 55 % de las intervenciones del Gobierno "
+                "y cumplen los mismos papeles que los ministros.  \n"
+                "*Diferencias pequeñas pero consistentes, medidas con un clasificador que se equivoca de forma similar "
+                "con mujeres y con hombres. Más tiempo de palabra no implica más influencia.*"
             )
 
         with gr.Tab("2. Así decide el sistema"):
