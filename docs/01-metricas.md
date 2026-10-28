@@ -1,6 +1,6 @@
 # Métricas de presencia y protagonismo
 
-> **Estado:** 27/10/2026. Definiciones ajustadas a los datos reales (exploración del 20 y 21/10; ver `02-datos.md`) y resultados de presencia (P1–P4) y de posición en el debate (R1, R2, R5) sobre todo el corpus. Los resultados del rol en el debate, calculado con IA, están en `05-evaluacion.md`.
+> **Estado:** 28/10/2026. Definiciones ajustadas a los datos reales (exploración del 20 y 21/10; ver `02-datos.md`) y resultados sobre todo el corpus de presencia (P1–P4), posición en el debate (R1, R2, R5) y rol en el debate (R7, clasificado con IA en las 26.586 intervenciones de diputadas y diputados). La evaluación del clasificador está en `05-evaluacion.md` y `06-acuerdo-y-confirmacion.md`.
 
 El reto pide una propuesta conceptual de métricas para cuantificar la presencia de las mujeres y su rol protagonista. Separamos dos ideas:
 
@@ -61,7 +61,7 @@ Diseño (detalles en `05-evaluacion.md` y `06-acuerdo-y-confirmacion.md`):
 - **Método híbrido:** si la `secuencia` de turnos muestra que la persona ya había hablado en el intercambio, el turno es `replica` por regla (determinista y explicable); el resto lo decide un modelo abierto (Qwen3.5-397B-A17B) accesible por una API compatible con OpenAI y sustituible por otro con un parámetro.
 - **Evaluación** contra una muestra anotada a mano y a ciegas, comparada con las reglas como referencia (*baseline*), con acuerdo entre anotadoras (kappa de Cohen) y confirmación en filas nuevas. Se mide el **error por género**, no solo el acierto global.
 - **Privacidad por diseño:** el modelo no recibe nombre, grupo ni género; el género se une después por el identificador de la intervención.
-- **Alcance:** una muestra estratificada de 3.000 intervenciones (1.500 por género, con pesos para estimar el corpus) y la clasificación de las 26.586 intervenciones de diputadas y diputados con los AI Endpoints de OVHcloud.
+- **Alcance:** las **26.586 intervenciones** de diputadas y diputados (rol `Regular`, sin continuaciones ni las 120 anotadas a mano), clasificadas con los AI Endpoints de OVHcloud: 7.051 por la regla estructural y 19.535 por el modelo, sin ninguna fila sin respuesta. Antes se usó una muestra estratificada de 3.000 (1.500 por género, con pesos), que sirvió para validar el diseño muestral (ver más abajo).
 
 Estimar el género de la presidencia a partir del texto queda descartado: sería una inferencia sobre personas, con riesgo ético y de error, y no es necesaria.
 
@@ -73,7 +73,7 @@ Estimar el género de la presidencia a partir del texto queda descartado: sería
 | R1, R2, R5 | Todo el corpus: 1.271 secciones con 2 o más turnos de oradores | Conteo |
 | R4 | Todo el corpus | Conteo |
 | R6 | Todo el corpus (provisional) | Reglas |
-| R7 | Muestra estratificada de 3.000; corpus completo de diputadas y diputados en curso | IA (híbrido) |
+| R7 | Todo el corpus de diputadas y diputados (26.586 intervenciones) | IA (híbrido) |
 | T1 | Todo el corpus (exploratoria) | Metadatos |
 
 ## Resultados de posición en el debate (R1, R2, R5)
@@ -133,6 +133,50 @@ python src/presencia/posicion.py data/raw/ParlaMint-ES.txt --tei data/raw/ParlaM
 
 Escribe `data/processed/posicion_resumen.csv` (métricas agregadas) y `data/processed/puntos.csv` (una fila por sección, sin nombres).
 
+## Resultados del rol en el debate (R7)
+
+Todo el corpus de diputadas y diputados, clasificado con el método híbrido. Porcentaje de las intervenciones de cada género que cumplen cada rol, con intervalo de Wilson del 95 %. Razón = cuota de mujeres en el rol / cuota de mujeres en el grupo (1 = proporcional).
+
+**Diputadas y diputados, sin ministros** (mujeres n = 7.686, hombres n = 15.105; 33,7 % de mujeres):
+
+| Rol | Mujeres | Hombres | Razón |
+|---|---|---|---|
+| Defensa de una iniciativa | **8,4 %** [7,8–9,0] | 6,5 % [6,1–6,9] | **1,17** |
+| Pregunta al Gobierno | **11,0 %** [10,3–11,7] | 9,0 % [8,6–9,5] | **1,13** |
+| Respuesta | 2,0 % [1,7–2,3] | 2,7 % [2,5–3,0] | 0,80 |
+| Réplica | 20,0 % [19,1–20,9] | 21,3 % [20,7–22,0] | 0,96 |
+| Fijación de posición | 54,5 % [53,3–55,6] | **57,0 %** [56,2–57,8] | 0,97 |
+| Procedimental | 4,2 % [3,8–4,6] | 3,4 % [3,1–3,7] | 1,15 |
+
+**Por estatus:**
+- **Oposición** (mujeres n = 5.849, hombres n = 11.355): defensa 8,4 % frente a 6,7 %; pregunta 12,7 % frente a 10,8 %; fijación de posición 55,8 % frente a 60,3 %.
+- **Gobierno y socios** (mujeres n = 1.701, hombres n = 3.245): defensa 8,3 % frente a 5,9 %; pregunta 6,0 % frente a 4,1 %; réplica 23,7 % frente a 31,8 %.
+- **Miembros del Gobierno** (mujeres n = 2.084, hombres n = 1.711): las ministras hacen el **54,9 %** de las intervenciones del Gobierno y cumplen los mismos papeles que los ministros (respuesta 31,0 % frente a 30,1 %; réplica 61,8 % frente a 63,5 %).
+
+**Validación del diseño muestral.** Las estimaciones de la muestra estratificada de 3.000 contenían el valor real del corpus completo en los 7 roles (por ejemplo, defensa: muestra 8,7 % [7,2–10,5], corpus 8,4 %; pregunta: muestra 10,6 % [9,0–12,5], corpus 11,0 %).
+
+### Lectura
+
+- Las diputadas intervienen menos (37 % de las intervenciones), pero **cuando intervienen ocupan algo más los papeles de protagonismo**: presentan más iniciativas y preguntan más al Gobierno. Los diputados, en proporción, fijan más la posición de su grupo. El patrón se repite en la oposición y en el Gobierno y sus socios.
+- Las **ministras** son mayoría de las intervenciones del Gobierno en el periodo y cumplen los mismos papeles que los ministros.
+- Junto con la posición (R1, R2, R5): las mujeres abren y cierran secciones al menos en proporción a su presencia. **La brecha principal está en cuánto intervienen**; cuando lo hacen, no quedan relegadas a papeles secundarios.
+
+### Cautelas
+
+- **No comparar con la tabla de «todas» las intervenciones:** mezcla ministros y diputados, y como hay más ministras, parece que las mujeres fijan menos posición (42,9 % frente a 51,2 %). Es un efecto de composición: los miembros del Gobierno no fijan la posición de un grupo.
+- **Diferencias pequeñas** (unos 2 puntos) frente al error del clasificador (acierta en torno al 87 % de los roles en filas nuevas). Son creíbles porque el error es similar para mujeres y hombres, y en la duda de `defensa` la segunda anotadora confirmó que los casos ambiguos eran defensas de mujeres (`06-acuerdo-y-confirmacion.md`). Aun así, se presentan como diferencias pequeñas pero consistentes.
+- Los datos no dicen **por qué** ocurren (reparto de portavocías, ponencias, estrategia de los grupos…).
+- Las razones de roles con casi ningún caso (por ejemplo, «pregunta» entre ministros, u «otra») no tienen significado.
+
+Reproducción:
+
+```bash
+python src/presencia/classify.py data/raw/ParlaMint-ES.txt --n 0 --paralelo 4 --salida data/processed/roles_completo.csv
+python src/presencia/roles.py data/processed/roles_completo.csv --salida data/processed/roles_resumen_completo.csv
+```
+
+Con la caché del modelo (`data/processed/llm/Qwen3.5-397B-A17B.jsonl`) en el repositorio, la clasificación se reproduce sin llamar a la API.
+
 ## Limitaciones a declarar
 
 - Más tiempo de palabra no implica más influencia.
@@ -149,6 +193,7 @@ Escribe `data/processed/posicion_resumen.csv` (métricas agregadas) y `data/proc
 ## Hoja de ruta
 
 - **Apertura y cierre por iniciativa:** dividir cada sección en iniciativas usando los anuncios de la presidencia o el rol `defensa`/`pregunta` que ya clasifica la IA.
+- **Error de la métrica agregada:** comparar, en la muestra anotada, el % de cada rol por género según las personas y según el sistema (criterio de éxito del taller de la organización).
 - **Cruce de posición y rol:** de las secciones que abre una mujer, qué papel cumple (`puntos.csv` guarda el identificador de la intervención de apertura y de cierre).
 - **Interrupciones** dadas y recibidas, y **menciones** (a quién se nombra y cómo), propuestas en el taller de la organización.
 - Limpiar R6 y validar `Topic` (T1).
