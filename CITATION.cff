@@ -1,0 +1,33 @@
+cff-version: 1.2.0
+message: "Si usas este software, cítalo con estos metadatos."
+title: "Presencia y protagonismo de las mujeres en el Congreso"
+abstract: >-
+  Sistema de IA abierta que mide la presencia y el protagonismo de las mujeres
+  en los debates del Pleno del Congreso de los Diputados (ParlaMint-ES 5.0,
+  2015-2023): presencia, apertura y cierre de los debates y rol de cada
+  intervención mediante un método híbrido (regla estructural y modelo de
+  lenguaje abierto), con evaluación del error por género.
+type: software
+authors:
+  - name: "Equipo MeduSSia"
+version: "1.0.0"
+date-released: "2026-10-29"
+license: MIT
+repository-code: "https://github.com/may-leth/presencia-parlamentaria"
+keywords:
+  - perspectiva de género
+  - procesamiento del lenguaje natural
+  - debates parlamentarios
+  - ParlaMint
+  - modelos de lenguaje abiertos
+references:
+  - type: dataset
+    title: "Multilingual comparable corpora of parliamentary debates ParlaMint 5.0"
+    authors:
+      - family-names: Erjavec
+        given-names: Tomaž
+      - name: "et al."
+    publisher:
+      name: "CLARIN.SI"
+    url: "http://hdl.handle.net/11356/2004"
+    license: CC-BY-4.0

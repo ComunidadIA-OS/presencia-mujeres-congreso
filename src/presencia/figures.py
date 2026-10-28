@@ -5,7 +5,8 @@ Uso (desde la raíz del repositorio, después de evaluate.py, classify.py y role
     python src/presencia/figures.py
 
 No llama a ningún modelo: usa la caché de data/processed/llm/, la muestra anotada,
-data/processed/intervenciones.csv (para unir el género por ID) y roles_resumen.csv.
+data/processed/intervenciones.csv (para unir el género por ID) y el resumen de roles:
+roles_resumen_completo.csv (corpus completo) si existe; si no, roles_resumen.csv (muestra de 3.000).
 Escribe docs/figuras/*.png.
 """
 from __future__ import annotations
@@ -119,7 +120,7 @@ def read_summary(path, group):
         return [r for r in csv.DictReader(fh) if r["grupo"] == group and r["rol"] in ROLE_NAMES]
 
 
-def fig_roles(summary, out):
+def fig_roles(summary, out, source):
     rows = sorted(summary, key=lambda r: float(r["pct_F"]) + float(r["pct_M"]))
     fig, ax = plt.subplots(figsize=(9, 4.6), dpi=200)
     fig.patch.set_facecolor(SURFACE)
@@ -133,17 +134,18 @@ def fig_roles(summary, out):
         ax.text(max(float(r["pct_F"]), float(r["pct_M"])) + 5, i,
                 f"{float(r['pct_F']):.1f} % / {float(r['pct_M']):.1f} %".replace(".", ","),
                 va="center", fontsize=9, color=INK_2)
-    labels = [ROLE_NAMES[r["rol"]] + (" *" if r["rol"] == "defensa" else "") for r in rows]
+    labels = [ROLE_NAMES[r["rol"]] for r in rows]
     ax.set_yticks(range(len(rows)), labels, color=INK)
     ax.set_xlim(0, 75)
     ax.set_xlabel("% de las intervenciones de cada género (punto) e intervalo de confianza del 95 % (línea)",
                   color=INK_2, fontsize=9)
     ax.legend(frameon=False, loc="lower right", fontsize=10)
     n_f, n_m = rows[0]["n_F"], rows[0]["n_M"]
-    style(ax, "Cuando intervienen, diputadas y diputados cumplen roles parecidos",
+    style(ax, "Las diputadas presentan más iniciativas y preguntan más al Gobierno",
           f"Rol de cada intervención, sin ministros/as (mujeres n = {n_f}, hombres n = {n_m}); mujeres / hombres")
-    fig.text(0.02, 0.02, "* Defensa: diferencia pendiente de validar (el modelo y la anotación discrepan más en "
-             "esta clase y sobre todo en intervenciones de mujeres).", fontsize=8, color=INK_2)
+    fig.text(0.02, 0.055, f"Fuente: {source}.", fontsize=8, color=INK_2)
+    fig.text(0.02, 0.02, "Rol clasificado con el método híbrido (regla estructural + Qwen3.5-397B-A17B), "
+             "con error similar para mujeres y hombres.", fontsize=8, color=INK_2)
     fig.subplots_adjust(left=0.27, right=0.97, top=0.80, bottom=0.2)
     fig.savefig(out, facecolor=SURFACE)
     plt.close(fig)
@@ -155,7 +157,8 @@ def main(argv=None):
     parser.add_argument("--cache", default="data/processed/llm")
     parser.add_argument("--modelo", default="Qwen3.5-397B-A17B")
     parser.add_argument("--intervenciones", default="data/processed/intervenciones.csv")
-    parser.add_argument("--resumen", default="data/processed/roles_resumen.csv")
+    parser.add_argument("--resumen", default=None,
+                        help="Resumen de roles; por defecto, el del corpus completo si existe, si no el de la muestra")
     parser.add_argument("--salida", default="docs/figuras")
     args = parser.parse_args(argv)
 
@@ -167,8 +170,15 @@ def main(argv=None):
     with open(args.intervenciones, encoding="utf-8", newline="") as fh:
         genders = {r["ID"]: r["Speaker_gender"] for r in csv.DictReader(fh)}
     fig_error_gender(ev, gold, preds, genders, out / "2_error_por_genero.png")
-    if Path(args.resumen).is_file():
-        fig_roles(read_summary(args.resumen, "sin_ministros"), out / "3_roles_por_genero.png")
+    resumen = args.resumen
+    if resumen is None:
+        full = Path("data/processed/roles_resumen_completo.csv")
+        resumen = str(full) if full.is_file() else "data/processed/roles_resumen.csv"
+    if Path(resumen).is_file():
+        source = ("corpus completo de diputadas y diputados, 2015–2023" if "completo" in resumen
+                  else "muestra estratificada de 3.000 intervenciones")
+        fig_roles(read_summary(resumen, "sin_ministros"), out / "3_roles_por_genero.png", source)
+        print(f"Rol por género a partir de {resumen}")
     print(f"Gráficos escritos en {out.resolve()}")
     return 0
 

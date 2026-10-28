@@ -28,9 +28,19 @@ def test_point_map_follows_headers(tmp_path):
     assert m["S.u4"][0] == 1 and m["S.u5"][0] == 2
 
 
-def test_categories_inherit_section():
+def test_categories_inherit_section_and_drop_names():
     assert categories(["PREGUNTAS : - DE X", "- DE Y", "VOTACIÓN DE CONJUNTO"]) == [
         "PREGUNTAS", "PREGUNTAS", "VOTACIÓN DE CONJUNTO"]
+    assert categories(["PREGUNTAS - DEL DIPUTADO DON FULANO, SOBRE X", "(inicio de la sesión)"]) == [
+        "PREGUNTAS", "(inicio de la sesión)"]
+
+
+def test_position_within_party():
+    turns = [("a", "M", False, "G1"), ("b", "F", False, "G1"), ("c", "M", False, "G2")]
+    rows = summarize([{"turnos": turns, "anio": "2020", "categoria": "X"}], min_group=1, min_party=1)
+    g1 = {r["metrica"]: r for r in rows if r["grupo"] == "grupo: G1"}
+    assert g1["R5_posicion_media_mujeres"]["pct_mujeres"] == 0.5
+    assert g1["R5_posicion_media_hombres"]["pct_mujeres"] == 0.0
 
 
 def test_build_points_skips_chair_and_continuations():
@@ -41,6 +51,7 @@ def test_build_points_skips_chair_and_continuations():
     points = build_points(items, pmap, continuations={"S.u4"})
     assert [t[0] for t in points[0]["turnos"]] == ["S.u2", "S.u5"]
     assert points[0]["turnos"][1][2] is True  # ministro
+    assert points[0]["turnos"][1][3] == "?"  # grupo (no viene en estas filas de prueba)
 
 
 def test_summarize_open_close_and_position():

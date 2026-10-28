@@ -22,7 +22,10 @@ proporcional, menos de 1 indica que abren o cierran menos de lo que les correspo
 
 Escribe (sin nombres ni identificadores de persona):
   data/processed/posicion_resumen.csv  métricas agregadas con intervalo de Wilson del 95 %
-  data/processed/puntos.csv            una fila por punto: título, nº de turnos y género de apertura y cierre
+  data/processed/puntos.csv            una fila por punto: tipo de sección, nº de turnos y género de apertura y cierre
+
+Nota: el XML pone un encabezado por sección del orden del día (p. ej. «PREGUNTAS»), no por cada
+pregunta o iniciativa, así que R1 y R2 miden la apertura y el cierre de cada sección.
 """
 from __future__ import annotations
 
@@ -46,6 +49,7 @@ TEI = "{http://www.tei-c.org/ns/1.0}"
 XML_ID = "{http://www.w3.org/XML/1998/namespace}id"
 MIN_TURNS = 2
 MIN_GROUP = 30  # categorías y años con menos puntos no se informan por separado
+MIN_PARTY = 200  # turnos mínimos de cada género para informar R5 de un grupo parlamentario
 
 
 # ----------------------------------------------------------------- TEI -> puntos
@@ -65,17 +69,20 @@ def point_map(tei_path):
     return mapping
 
 
+SECTION_SPLIT = re.compile(r"\s*:\s*|\s+-\s+")
+
+
 def categories(titles):
-    """Categoría de cada punto: lo que va antes de ':' en el encabezado; los que empiezan por '-'
-    heredan la categoría anterior (son puntos de la misma sección)."""
+    """Tipo de sección de cada punto: el texto del encabezado antes de ':' o de ' - ' (así no se
+    arrastran nombres de personas, que van detrás). Los que empiezan por '-' heredan la anterior."""
     out, current = [], "(sin categoría)"
     for t in titles:
-        t = t.strip()
-        if ":" in t:
-            current = t.split(":", 1)[0].strip(" -")
+        t = " ".join(t.split())
+        if t.startswith("("):
+            current = t
         elif not t.startswith("-"):
-            current = t.strip(" -")
-        out.append(current or "(sin categoría)")
+            current = SECTION_SPLIT.split(t, maxsplit=1)[0].strip(" -.") or "(sin categoría)"
+        out.append(current)
     return out
 
 
@@ -93,7 +100,7 @@ def build_points(items, pmap, continuations):
     """Agrupa los turnos de oradores de una sesión por punto del orden del día.
 
     items: lista de (fila de metadatos, texto) de una sesión. Devuelve una lista de puntos:
-    {"punto", "titulo", "turnos": [(ID, género, es_ministro), ...]} en orden.
+    {"punto", "titulo", "turnos": [(ID, género, es_ministro, grupo), ...]} en orden.
     """
     rows = sorted((r for r, _ in items), key=lambda r: turn_number(field(r, "ID")) or 0)
     points = {}
@@ -103,7 +110,7 @@ def build_points(items, pmap, continuations):
             continue
         index, title = pmap[uid]
         point = points.setdefault(index, {"punto": index, "titulo": title, "turnos": []})
-        point["turnos"].append((uid, field(row, "Speaker_gender"), is_minister(row)))
+        point["turnos"].append((uid, field(row, "Speaker_gender"), is_minister(row), field(row, "Speaker_party")))
     return [points[k] for k in sorted(points)]
 
 
@@ -142,7 +149,7 @@ def mean_ci(values):
     return m, m - half, m + half
 
 
-def summarize(points, min_group=MIN_GROUP):
+def summarize(points, min_group=MIN_GROUP, min_party=MIN_PARTY):
     """points: lista de dicts con 'turnos', 'anio' y 'categoria'. Devuelve las filas del resumen."""
     rows = []
 
@@ -189,9 +196,9 @@ def summarize(points, min_group=MIN_GROUP):
             n = len(turns)
             if n < MIN_TURNS:
                 continue
-            for i, (_, g, _) in enumerate(turns):
-                if g in pos:
-                    pos[g].append(i / (n - 1))
+            for i, t in enumerate(turns):
+                if t[1] in pos:
+                    pos[t[1]].append(i / (n - 1))
         for g, name in (("F", "mujeres"), ("M", "hombres")):
             m, lo, hi = mean_ci(pos[g])
             rows.append({
@@ -199,11 +206,32 @@ def summarize(points, min_group=MIN_GROUP):
                 "pct_mujeres": round(m, 3), "ic95_inf": round(lo, 3), "ic95_sup": round(hi, 3),
                 "referencia_pct": 0.5, "razon": "",
             })
+
+    # R5 dentro de cada grupo parlamentario: controla que el orden de intervención depende del grupo
+    by_party = defaultdict(lambda: {"F": [], "M": []})
+    for p in points:
+        turns = [t for t in p["turnos"] if not t[2]]
+        n = len(turns)
+        if n < MIN_TURNS:
+            continue
+        for i, t in enumerate(turns):
+            if t[1] in ("F", "M") and len(t) > 3 and t[3] not in ("?", "-", ""):
+                by_party[t[3]][t[1]].append(i / (n - 1))
+    for party, pos in sorted(by_party.items(), key=lambda kv: -(len(kv[1]["F"]) + len(kv[1]["M"]))):
+        if min(len(pos["F"]), len(pos["M"])) < min_party:
+            continue
+        for g, name in (("F", "mujeres"), ("M", "hombres")):
+            m, lo, hi = mean_ci(pos[g])
+            rows.append({
+                "metrica": f"R5_posicion_media_{name}", "grupo": f"grupo: {party[:40]}", "n": len(pos[g]),
+                "mujeres": "", "pct_mujeres": round(m, 3), "ic95_inf": round(lo, 3), "ic95_sup": round(hi, 3),
+                "referencia_pct": 0.5, "razon": "",
+            })
     return rows
 
 
 FIELDS = ["metrica", "grupo", "n", "mujeres", "pct_mujeres", "ic95_inf", "ic95_sup", "referencia_pct", "razon"]
-POINT_FIELDS = ["Text_ID", "punto", "anio", "categoria", "titulo", "turnos", "turnos_mujeres",
+POINT_FIELDS = ["Text_ID", "punto", "anio", "categoria", "turnos", "turnos_mujeres",
                 "apertura_genero", "cierre_genero", "apertura_ID", "cierre_ID"]
 
 
@@ -211,7 +239,7 @@ def format_report(rows):
     lines = []
     for r in rows:
         if r["metrica"].startswith("R5"):
-            lines.append(f"  {r['metrica']:<30} {r['grupo']:<22} n={r['n']:>6}  media {r['pct_mujeres']:.3f} "
+            lines.append(f"  {r['metrica']:<30} {r['grupo'][:30]:<30} n={r['n']:>6}  media {r['pct_mujeres']:.3f} "
                          f"[{r['ic95_inf']:.3f}, {r['ic95_sup']:.3f}]  (0 = primero, 1 = último)")
         else:
             lines.append(f"  {r['metrica']:<12} {r['grupo'][:48]:<48} n={r['n']:>5}  mujeres {r['pct_mujeres']:>5.1f} % "
@@ -269,8 +297,8 @@ def main(argv=None):
             t = p["turnos"]
             writer.writerow({
                 "Text_ID": p["Text_ID"], "punto": p["punto"], "anio": p["anio"], "categoria": p["categoria"],
-                "titulo": re.sub(r"\s+", " ", p["titulo"])[:200], "turnos": len(t),
-                "turnos_mujeres": sum(g == "F" for _, g, _ in t),
+                "turnos": len(t),
+                "turnos_mujeres": sum(x[1] == "F" for x in t),
                 "apertura_genero": t[0][1] if t else "", "cierre_genero": t[-1][1] if t else "",
                 "apertura_ID": t[0][0] if t else "", "cierre_ID": t[-1][0] if t else "",
             })

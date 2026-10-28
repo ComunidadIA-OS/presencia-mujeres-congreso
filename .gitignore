@@ -18,3 +18,13 @@ data/raw/
 
 # Sistema
 .DS_Store
+# Anotación con textos y resultados por intervención (no se publican)
+data/annotated/anotadora2.csv
+data/annotated/anotadora2_lote2.csv
+data/annotated/anotadora2_todo.csv
+data/processed/*_ciegas.csv
+data/processed/muestra_confirmacion.csv
+data/processed/roles_completo.csv
+data/processed/puntos.csv
+logs/
+data/processed/informe_confirmacion.txt
