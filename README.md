@@ -31,11 +31,13 @@ _No basta con contar cuántas mujeres intervienen: hay que saber si presentan in
 - [Perspectiva de género](#perspectiva-de-género)
 - [Ética y cumplimiento normativo](#ética-y-cumplimiento-normativo)
 - [Puesta en producción](#puesta-en-producción)
+- [Hoja de ruta](#hoja-de-ruta)
 - [Estructura del repositorio](#estructura-del-repositorio)
 - [Contribuir](#contribuir)
 - [Componentes de terceros y licencias](#componentes-de-terceros-y-licencias)
 - [Cómo citar](#cómo-citar)
 - [Licencia](#licencia)
+- [Integrantes](#integrantes)
 - [Agradecimientos](#agradecimientos)
 
 ## Qué hace
@@ -221,6 +223,63 @@ Caso de uso: un **observatorio de la presencia y el protagonismo de las mujeres 
 
 Plan completo: [docs/07-despliegue.md](docs/07-despliegue.md).
 
+## Hoja de ruta
+
+El reto se organizó en tres fases: proponer métricas, construir un sistema que las extraiga del texto y definir su puesta en producción. Las tres están completas. Lo siguiente sigue las fases del [plan de despliegue](docs/07-despliegue.md): piloto, validación con usuarias reales y producción.
+
+### Fase 1 · Métricas de presencia y protagonismo ✅
+
+- [x] Explorar ParlaMint-ES 5.0 y documentar sus límites: presidencia sin identificar en la mayoría de los turnos, columna `Agenda` vacía, datos hasta febrero de 2023 y género binario
+- [x] Presencia (P1–P4): oradoras, intervenciones, palabras e intervenciones por persona
+- [x] Protagonismo: apertura (R1) y cierre (R2) por sección del orden del día, intervenciones largas (R4), posición en el debate (R5) y rol de cada intervención (R7)
+- [x] Excluir la moderación (R3) de forma justificada, para no inferir el género de la presidencia
+- [x] Reacciones del hemiciclo (R6) y temas (T1), de forma exploratoria
+
+### Fase 2 · Sistema inteligente sobre texto ✅
+
+- [x] Preprocesado del corpus: turnos, continuaciones y secciones del orden del día a partir del XML TEI
+- [x] Anotación a ciegas con guía, segunda anotadora y conjunto de confirmación
+- [x] Línea base por reglas y cliente agnóstico respecto al modelo (API compatible con OpenAI)
+- [x] Comparación de tres modelos abiertos y método híbrido (regla estructural + LLM)
+- [x] Evaluación con accuracy, F1 por clase, matriz de confusión y **error por género** del propio sistema
+- [x] Clasificación de las 26.586 intervenciones de diputadas y diputados, con caché, reanudación y reintentos
+- [x] Demo con Gradio que funciona sin conexión con el modelo
+
+### Fase 3 · Plan de puesta en producción ✅
+
+- [x] Caso de uso, arquitectura, operación, costes y riesgos ([docs/07-despliegue.md](docs/07-despliegue.md))
+- [x] Permisos y acuerdos, RGPD, Reglamento de IA y ALTAI ([docs/03-etica.md](docs/03-etica.md))
+- [x] Repositorio reproducible: tests, integración continua, licencias y guía de contribución
+
+### Piloto (1–3 meses tras el reto)
+
+- [ ] **Guía de anotación v3:** aclarar la frontera entre presentar una iniciativa o enmienda (`defensa`) y fijar posición sobre ella (`posicion`), y el caso del primer turno breve de quien pregunta; anotar a ciegas los casos dudosos y repetir la evaluación
+- [ ] **Más anotación humana:** ampliar la doble anotación para estrechar los intervalos de calidad, que hoy salen de muestras pequeñas
+- [ ] **Error de la métrica agregada:** comparar el reparto de roles por género que da el sistema con el de la anotación humana, además del acierto por intervención
+- [ ] **Validar R6 y T1:** limpiar la clasificación de las reacciones y comprobar cómo asigna ParlaMint el campo `Topic` antes de sacar conclusiones
+- [ ] **Modelo local:** evaluar un modelo abierto pequeño en GPU propia como alternativa al servicio gestionado, para reducir la dependencia del proveedor
+
+### Validación (3–6 meses)
+
+- [ ] **Usuaria real:** probar los informes con una unidad de igualdad, un observatorio o un medio de periodismo de datos, y ajustar el panel a sus preguntas
+- [ ] **Acuerdos formales:** encargo del tratamiento con el proveedor de IA, evaluación de impacto en protección de datos y acuerdo de uso con la institución usuaria
+- [ ] **Nuevas métricas de protagonismo:** menciones (a quién se nombra y cómo se le trata) e interrupciones entre oradores, cada una con su muestra anotada y su comparación entre reglas e IA
+
+### Producción (6–12 meses)
+
+- [ ] **Datos posteriores a 2023:** adaptador para los datos abiertos del Congreso de los Diputados, con las condiciones de reutilización de información del sector público
+- [ ] **Informe periódico** por legislatura, grupo y rol, con revisión humana antes de publicar
+- [ ] **Vigilancia continua:** muestra anotada en cada actualización para controlar accuracy, F1 y error por género, con umbral de alerta
+- [ ] **Otras fuentes mediante adaptadores:** empezar por los parlamentos autonómicos de ParlaMint, con prompt y evaluación propios para cada lengua
+
+### Fuera de alcance
+
+- Rankings o valoraciones de personas concretas: solo se publican resultados agregados.
+- Inferir el género a partir del nombre, la voz o el texto: solo se usa el género declarado.
+- Interpretar el tiempo de palabra o la posición en el debate como influencia política.
+
+¿Quieres ayudar con alguno de estos puntos? Mira [Contribuir](#contribuir).
+
 ## Estructura del repositorio
 
 ```
@@ -246,7 +305,7 @@ Plan completo: [docs/07-despliegue.md](docs/07-despliegue.md).
 
 ## Contribuir
 
-Las contribuciones son bienvenidas: nuevas métricas (interrupciones, menciones), otros parlamentos de ParlaMint, más anotación humana o mejoras del clasificador. Lee [CONTRIBUTING.md](CONTRIBUTING.md) y el [código de conducta](CODE_OF_CONDUCT.md). Para avisar de un problema de seguridad o de datos personales, sigue [SECURITY.md](SECURITY.md).
+Las contribuciones son bienvenidas: nuevas métricas (interrupciones, menciones), otros parlamentos de ParlaMint, más anotación humana o mejoras del clasificador. La [hoja de ruta](#hoja-de-ruta) recoge las prioridades. Lee [CONTRIBUTING.md](CONTRIBUTING.md) y el [código de conducta](CODE_OF_CONDUCT.md). Para avisar de un problema de seguridad o de datos personales, sigue [SECURITY.md](SECURITY.md).
 
 ## Componentes de terceros y licencias
 
@@ -264,6 +323,40 @@ Usa el botón **«Cite this repository»** de GitHub (archivo [CITATION.cff](CIT
 ## Licencia
 
 Código bajo licencia **MIT** ([LICENSE](LICENSE)). Los datos y los modelos tienen sus propias licencias (ver [THIRD_PARTY.md](THIRD_PARTY.md)).
+
+## Integrantes
+
+<table>
+  <tr>
+    <td align="center">
+      <a href="https://github.com/may-leth">
+        <img src="https://github.com/may-leth.png" width="100px;" alt="Mayleth Carrascal Molina"/>
+        <br />
+        <sub><b>Mayleth Carrascal Molina</b></sub>
+      </a>
+      <br />
+      <sub>Backend Developer</sub>
+    </td>
+    <td align="center">
+      <a href="https://github.com/acpp2510">
+        <img src="https://github.com/acpp2510.png" width="100px;" alt="Ana Carina Pillajo"/>
+        <br />
+        <sub><b>Ana Carina Pillajo</b></sub>
+      </a>
+      <br />
+      <sub>Backend Developer</sub>
+    </td>
+    <td align="center">
+      <a href="https://github.com/morenaperalta">
+        <img src="https://github.com/morenaperalta.png" width="100px;" alt="Morena Peralta Almada"/>
+        <br />
+        <sub><b>Morena Peralta Almada</b></sub>
+      </a>
+      <br />
+      <sub>Backend Developer</sub>
+    </td>
+  </tr>
+</table>
 
 ## Agradecimientos
 
